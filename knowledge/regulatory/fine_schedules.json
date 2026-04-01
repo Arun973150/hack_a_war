@@ -1,0 +1,116 @@
+{
+  "_meta": {
+    "description": "Regulatory fine schedules used for blast radius calculation. Update periodically.",
+    "last_updated": "2026-01-01",
+    "usd_conversion_rates": {
+      "USD": 1.0,
+      "EUR": 1.08,
+      "GBP": 1.27,
+      "INR": 0.012,
+      "SGD": 0.74,
+      "AUD": 0.65
+    }
+  },
+  "GDPR": {
+    "full_name": "General Data Protection Regulation",
+    "jurisdiction": "EU",
+    "regulator": "Data Protection Authority (DPA)",
+    "currency": "EUR",
+    "tier_1_max": 10000000,
+    "tier_1_revenue_pct": 2.0,
+    "tier_2_max": 20000000,
+    "tier_2_revenue_pct": 4.0,
+    "notes": "Tier 1 for less severe violations; Tier 2 (higher of €20M or 4% global annual turnover) for core principles violations. GDPR Art. 83.",
+    "cwe_categories": ["Sensitive Data Exposure", "Encryption Weakness", "Injection / Input Validation Failure"]
+  },
+  "DPDP": {
+    "full_name": "Digital Personal Data Protection Act 2023",
+    "jurisdiction": "India",
+    "regulator": "Data Protection Board of India",
+    "currency": "INR",
+    "tier_1_max": 500000000,
+    "tier_2_max": 2500000000,
+    "notes": "Up to ₹250 Crore for significant breaches. DPDP Act Section 33.",
+    "cwe_categories": ["Sensitive Data Exposure", "Encryption Weakness", "Authentication & Access Control Failure"]
+  },
+  "RBI_PA": {
+    "full_name": "RBI Payment Aggregator Guidelines",
+    "jurisdiction": "India",
+    "regulator": "Reserve Bank of India (DPSS)",
+    "currency": "INR",
+    "tier_1_max": 50000000,
+    "notes": "Up to ₹5 Crore per incident. Non-compliance can lead to PA license revocation.",
+    "cwe_categories": ["Encryption Weakness", "Authentication & Access Control Failure", "Sensitive Data Exposure"]
+  },
+  "PCI_DSS": {
+    "full_name": "Payment Card Industry Data Security Standard",
+    "jurisdiction": "Global",
+    "regulator": "PCI Security Standards Council / Card Brands",
+    "currency": "USD",
+    "monthly_min": 5000,
+    "monthly_max": 100000,
+    "notes": "Card brands (Visa/Mastercard) fine acquiring banks $5K–$100K/month per merchant. Merchant can lose card acceptance rights.",
+    "cwe_categories": ["Encryption Weakness", "Authentication & Access Control Failure", "Sensitive Data Exposure", "Injection / Input Validation Failure"]
+  },
+  "DORA": {
+    "full_name": "Digital Operational Resilience Act",
+    "jurisdiction": "EU",
+    "regulator": "European Supervisory Authorities (EBA/ESMA/EIOPA)",
+    "currency": "EUR",
+    "tier_1_max": 10000000,
+    "tier_1_revenue_pct": 2.0,
+    "notes": "Higher of €10M or 2% global annual turnover. DORA Art. 50.",
+    "cwe_categories": ["Availability & Resilience Risk", "Supply Chain & Dependency Vulnerability"]
+  },
+  "NIS2": {
+    "full_name": "Network and Information Security Directive 2",
+    "jurisdiction": "EU",
+    "regulator": "National Cybersecurity Authority (per member state)",
+    "currency": "EUR",
+    "essential_max": 10000000,
+    "essential_revenue_pct": 2.0,
+    "important_max": 7000000,
+    "important_revenue_pct": 1.4,
+    "notes": "Essential entities: higher of €10M or 2% global turnover. Important entities: €7M or 1.4%.",
+    "cwe_categories": ["Supply Chain & Dependency Vulnerability", "Network & Infrastructure Exposure", "Availability & Resilience Risk"]
+  },
+  "SEC_CYBER": {
+    "full_name": "SEC Cybersecurity Disclosure Rules",
+    "jurisdiction": "US",
+    "regulator": "Securities and Exchange Commission",
+    "currency": "USD",
+    "per_violation": 50000,
+    "willful_max": 5000000,
+    "notes": "Civil penalties up to $5M for willful violations. Material incident disclosure required within 4 business days.",
+    "cwe_categories": ["Sensitive Data Exposure", "Availability & Resilience Risk"]
+  },
+  "SEBI_CSCRF": {
+    "full_name": "SEBI Cybersecurity and Cyber Resilience Framework",
+    "jurisdiction": "India",
+    "regulator": "Securities and Exchange Board of India",
+    "currency": "INR",
+    "per_violation": 250000000,
+    "notes": "Up to ₹25 Crore per violation. Applies to Market Infrastructure Institutions (MIIs) and REs.",
+    "cwe_categories": ["Authentication & Access Control Failure", "Network & Infrastructure Exposure"]
+  },
+  "HIPAA": {
+    "full_name": "Health Insurance Portability and Accountability Act",
+    "jurisdiction": "US",
+    "regulator": "Office for Civil Rights (HHS)",
+    "currency": "USD",
+    "tier_1_per_violation": 100,
+    "tier_4_per_violation": 50000,
+    "annual_max": 1900000,
+    "notes": "Tiered: $100–$50,000 per violation, max $1.9M per category per year.",
+    "cwe_categories": ["Sensitive Data Exposure", "Encryption Weakness"]
+  },
+  "ISO_27001": {
+    "full_name": "ISO/IEC 27001 Information Security Management",
+    "jurisdiction": "Global",
+    "regulator": "Certification Body / Contractual",
+    "currency": "USD",
+    "estimated_business_loss": 500000,
+    "notes": "No direct regulatory fines but loss of certification leads to contract losses. Estimated average business impact.",
+    "cwe_categories": ["Authentication & Access Control Failure", "Encryption Weakness"]
+  }
+}

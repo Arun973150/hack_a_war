@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+venv/
+.env
+
+# Secrets / Configs
+.env*
+!*.example
+*redforge*.json
+*.pem
+
+# Node / Next.js
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+*.log
+
+# Docker
+.DS_Store
+
+# IDE
+.vscode/
+.claude/
+.idea/

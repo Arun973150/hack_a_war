@@ -1,0 +1,14 @@
+venv/
+__pycache__/
+*.pyc
+.git/
+.github/
+node_modules/
+.next/
+dashboard/node_modules/
+dashboard/.next/
+*.egg-info/
+.env.local
+.mypy_cache/
+.pytest_cache/
+*.log

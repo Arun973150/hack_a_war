@@ -1,0 +1,50 @@
+# Red Forge PR Check — Runs on pull requests to validate code quality
+#
+name: PR Check
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+
+  # ─── Lint: Verify Python files compile ─────────────────────────────────────
+  lint:
+    name: Python Lint Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Compile-check key Python files
+        run: |
+          python -m py_compile config.py
+          python -m py_compile api/routes/regulations.py
+          python -m py_compile agents/graph.py
+          python -m py_compile monitoring/proactive_scanner.py
+          python -m py_compile monitoring/horizon_scanner.py
+          python -m py_compile monitoring/regulation_differ.py
+          python -m py_compile org_context/models/database.py
+          echo "All Python files compiled successfully"
+
+  # ─── Frontend: Verify dashboard builds ─────────────────────────────────────
+  frontend:
+    name: Frontend Build Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Install and build dashboard
+        run: |
+          cd dashboard
+          npm ci
+          npm run build

@@ -1,0 +1,165 @@
+{
+  "metadata": {
+    "dataset_id": "NG-COMP-001",
+    "dataset_version": "1.0.0",
+    "created_at": "2026-04-01",
+    "last_updated": "2026-04-01"
+  },
+
+  "company": {
+    "name": "NeuroGrid Pay AI Pvt. Ltd.",
+    "industry": "AI-driven FinTech & Payments",
+    "regions": ["India", "EU", "USA"],
+    "products": [
+      {
+        "name": "AI Fraud Detection Engine",
+        "type": "High-Risk AI System"
+      },
+      {
+        "name": "Smart Payment Gateway",
+        "type": "Payment Processing System"
+      }
+    ]
+  },
+
+  "infrastructure": {
+    "cloud": ["GCP", "AWS"],
+    "services": ["Kubernetes", "API Gateway"],
+    "databases": ["PostgreSQL"]
+  },
+
+  "regulations": [
+    "RBI_Payment_Guidelines",
+    "PCI_DSS",
+    "GDPR",
+    "EU_AI_Act",
+    "ISO_27001",
+    "SOC_2",
+    "HIPAA",
+    "DPDP_India"
+  ],
+
+  "organization": {
+    "teams": [
+      {"name": "ML Team"},
+      {"name": "Security Team"},
+      {"name": "DevOps"},
+      {"name": "Compliance Team"},
+      {"name": "Payments Team"}
+    ]
+  },
+
+  "policies": [
+    {
+      "id": "POL-SEC-001",
+      "name": "Data Protection Policy",
+      "version": "v3.2",
+      "status": "Approved",
+      "owner": "Security Team"
+    },
+    {
+      "id": "POL-PAY-002",
+      "name": "Payment Security Policy",
+      "version": "v1.8",
+      "status": "Approved",
+      "owner": "Payments Team"
+    },
+    {
+      "id": "POL-AI-003",
+      "name": "AI Ethics Policy",
+      "version": "v0.6",
+      "status": "Draft",
+      "owner": "ML Team"
+    }
+  ],
+
+  "controls": [
+    {
+      "id": "CTRL-ENC-001",
+      "name": "AES-256 Encryption",
+      "version": "v2.0",
+      "status": "Implemented",
+      "mapped_to": ["PCI_DSS", "GDPR"]
+    },
+    {
+      "id": "CTRL-PCI-002",
+      "name": "Tokenization",
+      "version": "v1.7",
+      "status": "Implemented",
+      "mapped_to": ["PCI_DSS"]
+    },
+    {
+      "id": "CTRL-LOG-003",
+      "name": "Transaction Logging",
+      "version": "v1.2",
+      "status": "Implemented",
+      "mapped_to": ["RBI_Payment_Guidelines"]
+    },
+    {
+      "id": "CTRL-AI-004",
+      "name": "Bias Testing",
+      "version": "v0.3",
+      "status": "Not Implemented",
+      "mapped_to": ["EU_AI_Act"]
+    },
+    {
+      "id": "CTRL-AI-005",
+      "name": "Explainability",
+      "version": "v0.2",
+      "status": "Not Implemented",
+      "mapped_to": ["EU_AI_Act"]
+    }
+  ],
+
+  "processes": [
+    {
+      "id": "PROC-PAY-001",
+      "name": "Payment Processing Workflow",
+      "version": "v2.1",
+      "status": "Operational"
+    },
+    {
+      "id": "PROC-FRD-002",
+      "name": "Fraud Detection Pipeline",
+      "version": "v1.9",
+      "status": "Operational"
+    },
+    {
+      "id": "PROC-RBI-003",
+      "name": "RBI Reporting Workflow",
+      "version": "v0.5",
+      "status": "Draft"
+    }
+  ],
+
+  "compliance_status": {
+    "RBI_Payment_Guidelines": "Partial",
+    "PCI_DSS": "Partial",
+    "GDPR": "Partial",
+    "EU_AI_Act": "Non-Compliant",
+    "HIPAA": "Non-Compliant"
+  },
+
+  "knowledge_graph": {
+    "nodes": [
+      "Company",
+      "Payment_System",
+      "AI_System",
+      "High_Risk_AI",
+      "Bias_Testing",
+      "Explainability",
+      "RBI",
+      "PCI_DSS",
+      "HIPAA"
+    ],
+    "edges": [
+      ["Company", "uses", "Payment_System"],
+      ["Payment_System", "regulated_by", "RBI"],
+      ["Payment_System", "requires", "PCI_DSS"],
+      ["AI_System", "type", "High_Risk_AI"],
+      ["High_Risk_AI", "requires", "Bias_Testing"],
+      ["High_Risk_AI", "requires", "Explainability"],
+      ["Healthcare_Data", "regulated_by", "HIPAA"]
+    ]
+  }
+}
