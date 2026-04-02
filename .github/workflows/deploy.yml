@@ -85,7 +85,8 @@ jobs:
       - name: Build and push Dashboard image
         uses: docker/build-push-action@v5
         with:
-          context: ./dashboard
+          context: .
+          file: docker/Dockerfile.frontend
           push: true
           tags: |
             ghcr.io/${{ env.REPO_LC }}/dashboard:latest
