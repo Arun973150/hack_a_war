@@ -10,6 +10,7 @@ import ConflictDetection from "./components/ConflictDetection";
 import DriftScore from "./components/DriftScore";
 import OnboardUpload from "./components/OnboardUpload";
 import ProactiveAlerts from "./components/ProactiveAlerts";
+import AskReforge from "./components/AskReforge";
 import { triggerPipeline, streamPipeline, AgentEvent, PipelineResult } from "./lib/api";
 
 const SIMULATED_STEP_MS = 1800;
@@ -241,6 +242,7 @@ export default function DemoPage() {
         </div>
       </div>
 
+      <AskReforge />
       <style>{`@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }`}</style>
     </div>
   );

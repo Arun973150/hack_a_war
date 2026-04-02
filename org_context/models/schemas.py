@@ -131,6 +131,22 @@ class AuditFinding(Base):
 
 # ─── Tech Stack Package ───────────────────────────────────────────────────────
 
+class OrgProfile(Base):
+    """Organization business profile — industry, jurisdictions, regulators, and company size."""
+    __tablename__ = "org_profile"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    company_name = Column(String(300), nullable=False)
+    sectors = Column(ARRAY(String), default=[])              # e.g. ["lending", "payments"]
+    countries = Column(ARRAY(String), default=[])             # e.g. ["US", "India", "EU"]
+    regulators = Column(ARRAY(String), default=[])            # e.g. ["RBI", "SEBI", "SEC"]
+    company_size = Column(String(50), default="")             # e.g. "startup", "mid", "enterprise"
+    annual_revenue_usd = Column(Float, nullable=True)
+    description = Column(Text, default="")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+
 class TechStackPackage(Base):
     """Registered software packages to monitor for CVEs proactively."""
     __tablename__ = "tech_stack_packages"

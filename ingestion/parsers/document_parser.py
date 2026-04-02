@@ -7,9 +7,9 @@ from PIL import Image
 
 import pdfplumber
 from bs4 import BeautifulSoup
-from docling.document_converter import DocumentConverter
-from docling.datamodel.base_models import InputFormat
-from docling.datamodel.pipeline_options import PdfPipelineOptions
+
+# docling imports are lazy — loaded inside DocumentParser.__init__
+# to avoid pulling in transformers/torch at module level
 
 logger = structlog.get_logger()
 
@@ -32,13 +32,21 @@ class DocumentParser:
     """
 
     def __init__(self):
-        pipeline_options = PdfPipelineOptions()
-        pipeline_options.do_ocr = False          # we handle OCR fallback manually
-        pipeline_options.do_table_structure = True
+        try:
+            from docling.document_converter import DocumentConverter
+            from docling.datamodel.base_models import InputFormat
+            from docling.datamodel.pipeline_options import PdfPipelineOptions
 
-        self._converter = DocumentConverter(
-            allowed_formats=[InputFormat.PDF, InputFormat.DOCX, InputFormat.HTML]
-        )
+            pipeline_options = PdfPipelineOptions()
+            pipeline_options.do_ocr = False          # we handle OCR fallback manually
+            pipeline_options.do_table_structure = True
+
+            self._converter = DocumentConverter(
+                allowed_formats=[InputFormat.PDF, InputFormat.DOCX, InputFormat.HTML]
+            )
+        except Exception as e:
+            logger.warning("docling_not_available", error=str(e))
+            self._converter = None
 
     def parse(self, content: bytes, content_type: str, filename: str = "document") -> ParsedDocument:
         if "pdf" in content_type:
@@ -53,25 +61,26 @@ class DocumentParser:
 
     def _parse_pdf(self, content: bytes, filename: str) -> ParsedDocument:
         # Try Docling first (handles structured PDFs well)
-        try:
-            tmp_path = Path(f"/tmp/{filename}.pdf")
-            tmp_path.write_bytes(content)
-            result = self._converter.convert(str(tmp_path))
-            doc = result.document
+        if self._converter is not None:
+            try:
+                tmp_path = Path(f"/tmp/{filename}.pdf")
+                tmp_path.write_bytes(content)
+                result = self._converter.convert(str(tmp_path))
+                doc = result.document
 
-            text = doc.export_to_text()
-            if len(text.strip()) > 100:
-                sections = self._extract_sections_from_docling(doc)
-                tables = self._extract_tables_from_docling(doc)
-                return ParsedDocument(
-                    text=text,
-                    sections=sections,
-                    tables=tables,
-                    metadata={"parser": "docling"},
-                    page_count=len(doc.pages) if hasattr(doc, "pages") else 0,
-                )
-        except Exception as e:
-            logger.warning("docling_parse_failed", error=str(e), filename=filename)
+                text = doc.export_to_text()
+                if len(text.strip()) > 100:
+                    sections = self._extract_sections_from_docling(doc)
+                    tables = self._extract_tables_from_docling(doc)
+                    return ParsedDocument(
+                        text=text,
+                        sections=sections,
+                        tables=tables,
+                        metadata={"parser": "docling"},
+                        page_count=len(doc.pages) if hasattr(doc, "pages") else 0,
+                    )
+            except Exception as e:
+                logger.warning("docling_parse_failed", error=str(e), filename=filename)
 
         # Fallback: pdfplumber for text-based PDFs
         try:
@@ -173,6 +182,9 @@ class DocumentParser:
         )
 
     def _parse_docx(self, content: bytes, filename: str) -> ParsedDocument:
+        if self._converter is None:
+            logger.warning("docling_unavailable_cannot_parse_docx")
+            return ParsedDocument(text="", sections=[], tables=[], metadata={"error": "docling unavailable"}, page_count=0)
         try:
             tmp_path = Path(f"/tmp/{filename}.docx")
             tmp_path.write_bytes(content)

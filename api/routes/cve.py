@@ -328,10 +328,17 @@ async def upload_stack_file(
         packages = _parse_stack_json(content)
         source_file = file.filename or "stack.json"
     else:
-        raise HTTPException(400, "Unsupported file type. Upload requirements.txt, package.json, or a stack JSON file")
+        raise HTTPException(
+            400,
+            f"Unsupported file type: '{file.filename}'. Upload requirements.txt, package.json, or a stack JSON file.",
+        )
 
     if not packages:
-        raise HTTPException(400, "No packages found in the uploaded file")
+        raise HTTPException(
+            400,
+            f"No packages found in '{file.filename}' (parsed as {source_file}). "
+            "Ensure the file is non-empty and matches the expected format.",
+        )
 
     if replace_existing:
         delete_tech_stack_packages()

@@ -5,6 +5,7 @@ All operations use the Supabase PostgreSQL engine from storage/db.py.
 import uuid
 import structlog
 from datetime import datetime
+from email.utils import parsedate_to_datetime
 from typing import Optional
 from sqlalchemy.orm import Session
 
@@ -18,6 +19,7 @@ from org_context.models.schemas import (
     AuditFinding,
     ComplianceFramework,
     RiskLevel,
+    OrgProfile,
     TechStackPackage,
     CveAlert,
     RegulationSnapshot,
@@ -77,6 +79,65 @@ def list_org_units(session: Session | None = None) -> list[OrganizationUnit]:
     db = session or get_session()
     try:
         return db.query(OrganizationUnit).all()
+    finally:
+        if not session:
+            db.close()
+
+
+# ─── OrgProfile CRUD ────────────────────────────────────────────────────────
+
+def upsert_org_profile(
+    company_name: str,
+    sectors: list[str] | None = None,
+    countries: list[str] | None = None,
+    regulators: list[str] | None = None,
+    company_size: str = "",
+    annual_revenue_usd: float | None = None,
+    description: str = "",
+    session: Session | None = None,
+) -> OrgProfile:
+    """Create or update the org profile. Only one profile per deployment (upserts the first row)."""
+    db = session or get_session()
+    try:
+        existing = db.query(OrgProfile).first()
+        if existing:
+            existing.company_name = company_name
+            existing.sectors = sectors or []
+            existing.countries = countries or []
+            existing.regulators = regulators or []
+            existing.company_size = company_size
+            existing.annual_revenue_usd = annual_revenue_usd
+            existing.description = description
+            existing.updated_at = datetime.utcnow()
+            db.commit()
+            db.refresh(existing)
+            logger.info("org_profile_updated", company=company_name)
+            return existing
+
+        profile = OrgProfile(
+            company_name=company_name,
+            sectors=sectors or [],
+            countries=countries or [],
+            regulators=regulators or [],
+            company_size=company_size,
+            annual_revenue_usd=annual_revenue_usd,
+            description=description,
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+        logger.info("org_profile_created", company=company_name)
+        return profile
+    finally:
+        if not session:
+            db.close()
+
+
+def get_org_profile(session: Session | None = None) -> OrgProfile | None:
+    """Return the org profile (singleton)."""
+    db = session or get_session()
+    try:
+        return db.query(OrgProfile).first()
     finally:
         if not session:
             db.close()
@@ -166,6 +227,23 @@ def update_control_coverage(
             db.close()
 
 
+def _parse_date(date_str: str | None) -> datetime | None:
+    """Parse ISO 8601 or RFC 2822 date strings gracefully."""
+    if not date_str:
+        return None
+    # Try ISO format first (2026-03-15)
+    try:
+        return datetime.fromisoformat(date_str)
+    except (ValueError, TypeError):
+        pass
+    # Try RFC 2822 (Fri, 27 Mar 2026 10:00:00 +0100) — from RSS feeds
+    try:
+        return parsedate_to_datetime(date_str)
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
 # ─── RegulationTracking CRUD ─────────────────────────────────────────────────
 
 def upsert_regulation_tracking(
@@ -206,7 +284,7 @@ def upsert_regulation_tracking(
             jurisdiction=jurisdiction,
             regulatory_body=regulatory_body,
             document_type=document_type,
-            published_date=datetime.fromisoformat(published_date) if published_date else None,
+            published_date=_parse_date(published_date),
             source_url=source_url,
             is_relevant=is_relevant,
             relevance_score=relevance_score,

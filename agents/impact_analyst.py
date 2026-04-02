@@ -10,8 +10,7 @@ import vertexai
 from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
-from langchain_neo4j import Neo4jGraph
-from langchain_neo4j import GraphCypherQAChain
+# langchain_neo4j imports are lazy — loaded inside ImpactAnalyst.__init__
 
 from agents.state import ComplianceWorkflowState, ImpactGap, SecurityAdvisory
 from knowledge.graph.neo4j_client import Neo4jClient
@@ -98,6 +97,7 @@ class ImpactAnalystAgent:
 
         # LangChain GraphCypherQAChain for natural language → Cypher
         try:
+            from langchain_neo4j import Neo4jGraph, GraphCypherQAChain
             self._graph = Neo4jGraph(
                 url=settings.neo4j_uri,
                 username=settings.neo4j_username,

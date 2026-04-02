@@ -4,7 +4,6 @@ Used by SQLAlchemy (org_context models) and LangGraph checkpointer.
 """
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from supabase import create_client
 
 from config import settings
 
@@ -37,4 +36,5 @@ def get_session() -> Session:
 
 def get_supabase_client():
     """Direct Supabase client for REST API operations."""
+    from supabase import create_client
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
