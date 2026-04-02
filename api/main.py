@@ -92,8 +92,9 @@ app = FastAPI(
 
 _cors_origins = [
     "http://localhost:3000",
+    "http://localhost:3001",
     "http://localhost:5173",
-    "http://16.171.132.201",
+    "http://32.192.255.100",
 ]
 # Add custom origins from env if set (comma-separated)
 _extra_origins = os.environ.get("CORS_ORIGINS", "")
@@ -144,6 +145,11 @@ app.include_router(cve.router, prefix="/api/v1/cve", tags=["cve"], dependencies=
 app.include_router(compliance.router, prefix="/api/v1/compliance", tags=["compliance"], dependencies=_auth)
 app.include_router(ask.router, prefix="/api/v1/ask", tags=["ask"], dependencies=_auth)
 app.include_router(reports.router, prefix="/api/v1/reports", tags=["reports"], dependencies=_auth)
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    return {"service": "Red Forge API", "version": "0.1.0", "status": "running"}
 
 
 @app.get("/metrics", include_in_schema=False)

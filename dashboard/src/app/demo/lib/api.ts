@@ -5,12 +5,17 @@
  */
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY || "rf-dev-key-2025";
 
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T | null> {
   try {
+    const finalHeaders = new Headers(init?.headers);
+    finalHeaders.set("Content-Type", "application/json");
+    finalHeaders.set("X-API-Key", API_KEY);
+    
     const res = await fetch(`${API_BASE}${path}`, {
-      headers: { "Content-Type": "application/json" },
       ...init,
+      headers: finalHeaders,
     });
     if (!res.ok) return null;
     return res.json() as Promise<T>;
@@ -258,6 +263,38 @@ export async function getConflicts(): Promise<ConflictData | null> {
   return apiFetch<ConflictData>("/api/v1/controls/conflicts");
 }
 
+// ─── Org Profile ────────────────────────────────────────────────────────────
+
+export interface OrgProfile {
+  exists: boolean;
+  company_name: string;
+  sectors: string[];
+  countries: string[];
+  regulators: string[];
+  company_size: string;
+  annual_revenue_usd: number | null;
+  description: string;
+}
+
+export async function fetchOrgProfile(): Promise<OrgProfile | null> {
+  return apiFetch<OrgProfile>("/api/v1/org/profile");
+}
+
+export async function saveOrgProfile(profile: {
+  company_name: string;
+  sectors: string[];
+  countries: string[];
+  regulators: string[];
+  company_size?: string;
+  annual_revenue_usd?: number | null;
+  description?: string;
+}): Promise<{ status: string } | null> {
+  return apiFetch("/api/v1/org/profile", {
+    method: "POST",
+    body: JSON.stringify(profile),
+  });
+}
+
 // ─── File Upload ─────────────────────────────────────────────────────────────
 
 export interface UploadedControl {
@@ -273,18 +310,23 @@ export async function uploadControlFile(file: File): Promise<{
   total: number;
   method: string;
   filename: string;
+  error?: string;
 } | null> {
   try {
     const form = new FormData();
     form.append("file", file);
     const res = await fetch(`${API_BASE}/api/v1/org/import-controls`, {
       method: "POST",
+      headers: { "X-API-Key": API_KEY },
       body: form,
     });
-    if (!res.ok) return null;
+    if (!res.ok) {
+      const detail = await res.text().catch(() => res.statusText);
+      return { registered: [], total: 0, method: "error", filename: file.name, error: `Upload error ${res.status}: ${detail}` };
+    }
     return res.json();
-  } catch {
-    return null;
+  } catch (e: any) {
+    return { registered: [], total: 0, method: "error", filename: file.name, error: `fetch error: ${e.message}` };
   }
 }
 
@@ -470,17 +512,34 @@ export async function uploadStackFile(file: File, replaceExisting = false): Prom
   parsed_packages: number;
   newly_registered: number;
   total_monitored: number;
+  error?: string;
 } | null> {
   try {
     const form = new FormData();
     form.append("file", file);
+    const headers = new Headers();
+    headers.set("X-API-Key", API_KEY);
+    
     const res = await fetch(
       `${API_BASE}/api/v1/cve/upload-stack?replace_existing=${replaceExisting}`,
-      { method: "POST", body: form },
+      { method: "POST", headers, body: form },
     );
-    if (!res.ok) return null;
+    if (!res.ok) {
+      return { filename: "", parsed_packages: 0, newly_registered: 0, total_monitored: 0, error: `backend error: ${res.status} ${res.statusText}` };
+    }
     return res.json();
-  } catch {
-    return null;
+  } catch (e: any) {
+    return { filename: "", parsed_packages: 0, newly_registered: 0, total_monitored: 0, error: `fetch error: ${e.message}` };
   }
+}
+
+export async function askQuestion(
+  question: string,
+  jurisdiction?: string,
+): Promise<{ answer: string; sources: any[]; controls_referenced: string[] } | null> {
+  const data = await apiFetch<{ answer: string; sources: any[]; controls_referenced: string[] }>("/api/v1/ask", {
+    method: "POST",
+    body: JSON.stringify({ question, jurisdiction: jurisdiction && jurisdiction !== "All" ? jurisdiction : undefined }),
+  });
+  return data;
 }

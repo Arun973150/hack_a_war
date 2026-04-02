@@ -5,7 +5,7 @@ import structlog
 
 from config import settings
 from knowledge.graph.neo4j_client import Neo4jClient
-from knowledge.vectors.qdrant_store import QdrantStore
+from knowledge.vectors.qdrant_store import RegulatoryVectorStore
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -16,7 +16,7 @@ class AskRequest(BaseModel):
     jurisdiction: Optional[str] = None
 
 
-@router.post("/")
+@router.post("")
 async def ask_question(request: AskRequest):
     """
     RAG-based Q&A over regulations, controls, and policies.
@@ -30,7 +30,7 @@ async def ask_question(request: AskRequest):
     # ── Step 1: Semantic search in Qdrant ────────────────────────────────
     vector_results = []
     try:
-        store = QdrantStore()
+        store = RegulatoryVectorStore()
         vector_results = store.search(question, limit=5)
     except Exception as e:
         logger.error("ask_qdrant_search_failed", error=str(e))

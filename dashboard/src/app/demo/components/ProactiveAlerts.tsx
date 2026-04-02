@@ -67,11 +67,11 @@ export default function ProactiveAlerts() {
     setUploading(true);
     setUploadMsg("");
     const res = await uploadStackFile(file, false);
-    if (res) {
+    if (res && !res.error) {
       setUploadMsg(`Registered ${res.newly_registered} new packages (${res.total_monitored} total monitored)`);
       await loadData();
     } else {
-      setUploadMsg("Upload failed. Check file format.");
+      setUploadMsg(res?.error ? `Upload failed: ${res.error}` : "Upload failed. Check file format.");
     }
     setUploading(false);
     e.target.value = "";

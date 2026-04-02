@@ -36,7 +36,7 @@ FEDERAL_REGISTER_URL = (
     "&conditions[agencies][]=securities-and-exchange-commission"
     "&per_page=10&order=newest"
 )
-EUR_LEX_RSS_URL = "https://eur-lex.europa.eu/EN/display-feed.html"
+EUR_LEX_RSS_URL = "https://www.ecb.europa.eu/rss/press.html"
 SEBI_RSS_URL = (
     "https://www.sebi.gov.in/sebiweb/home/HomeAction.do"
     "?doListing=yes&sid=1&ssid=1&smid=0"
@@ -134,10 +134,10 @@ async def _fetch_eur_lex_feed() -> list[dict]:
             if not entry_id:
                 continue
             results.append({
-                "source_id": _generate_source_id("eur_lex", entry_id),
+                "source_id": _generate_source_id("ecb", entry_id),
                 "title": entry.get("title", "Untitled"),
                 "jurisdiction": "EU",
-                "regulatory_body": "EUR-Lex",
+                "regulatory_body": "European Central Bank",
                 "document_type": "Regulation",
                 "published_date": entry.get("published", entry.get("updated", "")),
                 "source_url": entry.get("link", ""),

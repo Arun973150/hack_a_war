@@ -9,12 +9,15 @@ import json
 import structlog
 import vertexai
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from pydantic import BaseModel
+from typing import Optional
 from langchain_google_vertexai import ChatVertexAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import JsonOutputParser
 
 from config import settings
 from knowledge.graph.neo4j_client import Neo4jClient
+from org_context.models.database import upsert_org_profile, get_org_profile
 
 logger = structlog.get_logger()
 router = APIRouter()
@@ -317,3 +320,84 @@ async def import_controls(file: UploadFile = File(...)):
         return _import_org_profile_json(content, filename)
     else:
         raise HTTPException(400, f"Unsupported file type: .{ext}. Supported: csv, xlsx, pdf, docx, json")
+
+
+# ─── Org Profile Endpoints ───────────────────────────────────────────────────
+
+class OrgProfileRequest(BaseModel):
+    company_name: str
+    sectors: list[str] = []
+    countries: list[str] = []
+    regulators: list[str] = []
+    company_size: Optional[str] = ""
+    annual_revenue_usd: Optional[float] = None
+    description: Optional[str] = ""
+
+
+@router.post("/profile")
+async def save_org_profile(request: OrgProfileRequest):
+    """Save or update the organization's business profile."""
+    try:
+        profile = upsert_org_profile(
+            company_name=request.company_name,
+            sectors=request.sectors,
+            countries=request.countries,
+            regulators=request.regulators,
+            company_size=request.company_size or "",
+            annual_revenue_usd=request.annual_revenue_usd,
+            description=request.description or "",
+        )
+        return {
+            "status": "saved",
+            "company_name": profile.company_name,
+            "sectors": profile.sectors,
+            "countries": profile.countries,
+            "regulators": profile.regulators,
+            "company_size": profile.company_size,
+            "annual_revenue_usd": profile.annual_revenue_usd,
+            "description": profile.description,
+        }
+    except Exception as e:
+        logger.error("org_profile_save_failed", error=str(e))
+        raise HTTPException(500, f"Failed to save org profile: {e}")
+
+
+@router.get("/profile")
+async def fetch_org_profile():
+    """Return the saved organization profile, or empty defaults."""
+    try:
+        profile = get_org_profile()
+        if not profile:
+            return {
+                "exists": False,
+                "company_name": "",
+                "sectors": [],
+                "countries": [],
+                "regulators": [],
+                "company_size": "",
+                "annual_revenue_usd": None,
+                "description": "",
+            }
+        return {
+            "exists": True,
+            "company_name": profile.company_name,
+            "sectors": profile.sectors or [],
+            "countries": profile.countries or [],
+            "regulators": profile.regulators or [],
+            "company_size": profile.company_size or "",
+            "annual_revenue_usd": profile.annual_revenue_usd,
+            "description": profile.description or "",
+        }
+    except Exception as e:
+        logger.error("org_profile_fetch_failed", error=str(e))
+        return {
+            "exists": False,
+            "company_name": "",
+            "sectors": [],
+            "countries": [],
+            "regulators": [],
+            "company_size": "",
+            "annual_revenue_usd": None,
+            "description": "",
+            "error": str(e),
+        }

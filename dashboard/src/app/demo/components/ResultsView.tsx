@@ -171,9 +171,26 @@ export default function ResultsView({ regulation, analysisComplete, pipelineResu
     <div style={{ maxWidth: 1000, margin: "0 auto" }}>
 
       {/* ── Summary ──────────────────────────────────────────── */}
-      <div style={{ marginBottom: 48 }}>
-        <div style={{ fontSize: 11, color: "#4A4C57", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600, marginBottom: 14 }}>
-          Analysis Complete
+      <div style={{ marginBottom: 48 }} className="print-section">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <div style={{ fontSize: 11, color: "#4A4C57", textTransform: "uppercase", letterSpacing: "0.1em", fontWeight: 600 }}>
+            Analysis Complete
+          </div>
+          <button
+            onClick={() => window.print()}
+            style={{
+              padding: "6px 14px", borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: "pointer", outline: "none", transition: "all .15s",
+              background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.15)", color: "#EDEDEF", display: "flex", gap: 6, alignItems: "center"
+            }}
+            className="hide-on-print"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export Audit Report
+          </button>
         </div>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 32, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 280 }}>
@@ -366,6 +383,15 @@ export default function ResultsView({ regulation, analysisComplete, pipelineResu
           />
         </div>
       </div>
+      
+      <style>{`
+        @media print {
+          body { background: white !important; color: black !important; }
+          .hide-on-print { display: none !important; }
+          .print-section { page-break-inside: avoid; }
+          * { text-shadow: none !important; box-shadow: none !important; }
+        }
+      `}</style>
     </div>
   );
 }

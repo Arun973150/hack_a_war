@@ -6,15 +6,16 @@ Also exposes the Supabase PostgreSQL connection string.
 import io
 import structlog
 from datetime import datetime
-from supabase import create_client, Client
+# supabase is lazily imported — not in pyproject.toml on lightweight deploys
 
 from config import settings
 
 logger = structlog.get_logger()
 
 
-def get_supabase() -> Client:
+def get_supabase():
     """Return authenticated Supabase client."""
+    from supabase import create_client
     return create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
