@@ -6,7 +6,7 @@
 #   EC2_USER      — SSH username (default: ubuntu)
 #   GHCR_TOKEN    — GitHub PAT with packages:write scope
 #
-name: Deploy
+name: CI (Build & Push)
 
 on:
   push:
@@ -94,24 +94,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ─── Deploy: SSH into EC2 and restart containers ──────────────────────────
-  deploy:
-    name: Deploy to EC2
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy via SSH
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.EC2_HOST }}
-          username: ${{ secrets.EC2_USER }}
-          key: ${{ secrets.EC2_SSH_KEY }}
-          script: |
-            cd /home/ubuntu/red_forge
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            docker compose -f docker-compose.prod.yml pull
-            docker compose -f docker-compose.prod.yml up -d
-            echo "Waiting for health check..."
-            sleep 10
-            curl -sf http://localhost:8000/health || echo "WARNING: Health check failed"
-            echo "Deploy complete"
+
