@@ -27,6 +27,7 @@ services:
 
   # ─── FastAPI Backend ──────────────────────────────────────────────────────
   api:
+    image: ghcr.io/arun973150/hack_a_war/api:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.api
@@ -48,6 +49,7 @@ services:
 
   # ─── Next.js Frontend ────────────────────────────────────────────────────
   frontend:
+    image: ghcr.io/arun973150/hack_a_war/dashboard:latest
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
