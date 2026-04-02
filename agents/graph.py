@@ -59,6 +59,22 @@ def route_after_scanner(
     return END
 
 
+def route_after_extractor(
+    state: ComplianceWorkflowState,
+) -> Literal["impact_analyst", "__end__"]:
+    """Route: if retry produced 0 obligations, stop — retrying won't help."""
+    if state.error:
+        return END
+    if state.retry_count > 0 and len(state.obligations) == 0:
+        logger.info(
+            "no_obligations_after_retry_ending",
+            document_id=state.document_id,
+            retry_count=state.retry_count,
+        )
+        return END
+    return "impact_analyst"
+
+
 def route_after_validator(
     state: ComplianceWorkflowState,
 ) -> Literal["extractor", "__end__"]:
@@ -105,7 +121,11 @@ def build_compliance_graph(use_checkpointer: bool = True) -> StateGraph:
         route_after_scanner,
         {"extractor": "extractor", END: END},
     )
-    graph.add_edge("extractor", "impact_analyst")
+    graph.add_conditional_edges(
+        "extractor",
+        route_after_extractor,
+        {"impact_analyst": "impact_analyst", END: END},
+    )
     graph.add_edge("impact_analyst", "action_planner")
     graph.add_edge("action_planner", "validator")
     graph.add_conditional_edges(

@@ -119,7 +119,7 @@ class ComplianceWorkflowState(BaseModel):
     # Agent 5 — Validator output
     validation: ValidationResult | None = None
     retry_count: int = 0
-    max_retries: int = 2
+    max_retries: int = 3
 
     # Routing
     error: str | None = None
