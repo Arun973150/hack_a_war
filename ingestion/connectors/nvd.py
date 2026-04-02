@@ -203,3 +203,99 @@ async def fetch_cisa_kev(limit: int = 5) -> list[dict[str, Any]]:
     except Exception as e:
         logger.error("cisa_kev_error", error=str(e))
         return []
+
+
+# ─── Sync versions (for use in background threads where event loop conflicts) ─
+
+def fetch_nvd_cves_sync(sector: str, cvss_min: float = 7.0, limit: int = 8) -> list[dict[str, Any]]:
+    """Sync version of fetch_nvd_cves using httpx sync client."""
+    sector_lower = sector.lower()
+    keywords = next(
+        (v for k, v in SECTOR_KEYWORDS.items() if k in sector_lower),
+        SECTOR_KEYWORDS["all"],
+    )
+    params = {
+        "keywordSearch": keywords,
+        "resultsPerPage": min(limit * 3, 30),
+    }
+    try:
+        with httpx.Client(timeout=20.0) as client:
+            resp = client.get(NVD_BASE, params=params)
+            if resp.status_code != 200:
+                logger.warning("nvd_sync_fetch_failed", status=resp.status_code)
+                return []
+
+            cves = []
+            for vuln in resp.json().get("vulnerabilities", []):
+                cve_obj = vuln.get("cve", {})
+                descriptions = cve_obj.get("descriptions", [])
+                desc = next((d["value"] for d in descriptions if d.get("lang") == "en"), "")
+
+                metrics = cve_obj.get("metrics", {})
+                cvss_score = 0.0
+                severity = "MEDIUM"
+                for key in ("cvssMetricV31", "cvssMetricV30", "cvssMetricV2"):
+                    if key in metrics and metrics[key]:
+                        m = metrics[key][0]
+                        cvss_data = m.get("cvssData", {})
+                        cvss_score = float(cvss_data.get("baseScore", 0.0))
+                        severity = str(cvss_data.get("baseSeverity", "MEDIUM")).upper()
+                        break
+
+                if cvss_score < cvss_min:
+                    continue
+
+                cwes = []
+                for w in cve_obj.get("weaknesses", []):
+                    for d in w.get("description", []):
+                        val = d.get("value", "")
+                        if val.startswith("CWE-") and val not in cwes:
+                            cwes.append(val)
+
+                cves.append({
+                    "cve_id": cve_obj.get("id", ""),
+                    "description": desc[:400],
+                    "cvss_score": cvss_score,
+                    "severity": severity,
+                    "cwes": cwes,
+                    "published_date": cve_obj.get("published", "")[:10],
+                })
+                if len(cves) >= limit:
+                    break
+
+            logger.info("nvd_cves_fetched_sync", sector=sector, count=len(cves))
+            return cves
+    except Exception as e:
+        logger.error("nvd_sync_fetch_error", error=str(e))
+        return []
+
+
+def fetch_cisa_kev_sync(limit: int = 5) -> list[dict[str, Any]]:
+    """Sync version of fetch_cisa_kev using httpx sync client."""
+    try:
+        with httpx.Client(timeout=15.0) as client:
+            resp = client.get(CISA_KEV_URL)
+            if resp.status_code != 200:
+                logger.warning("cisa_kev_sync_fetch_failed", status=resp.status_code)
+                return []
+
+            vulns = resp.json().get("vulnerabilities", [])
+            recent = sorted(vulns, key=lambda v: v.get("dateAdded", ""), reverse=True)[:limit]
+
+            return [
+                {
+                    "cve_id": v.get("cveID", ""),
+                    "description": f"{v.get('vendorProject', '')} {v.get('product', '')}: {v.get('shortDescription', '')}",
+                    "cvss_score": 9.0,
+                    "severity": "CRITICAL",
+                    "cwes": [],
+                    "published_date": v.get("dateAdded", ""),
+                    "is_kev": True,
+                    "required_action": v.get("requiredAction", ""),
+                    "due_date": v.get("dueDate", ""),
+                }
+                for v in recent
+            ]
+    except Exception as e:
+        logger.error("cisa_kev_sync_error", error=str(e))
+        return []

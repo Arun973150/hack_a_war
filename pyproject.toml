@@ -28,6 +28,7 @@ dependencies = [
 
     # Knowledge Graph
     "neo4j>=5.20.0",
+    "langchain-neo4j>=0.1.0",
 
     # Database
     "psycopg[binary]>=3.2.1",

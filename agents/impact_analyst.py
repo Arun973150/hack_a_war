@@ -4,7 +4,6 @@ Model: Gemini 2.5 Pro (highest reasoning — accuracy is paramount here)
 Role: Multi-hop reasoning over the Knowledge Graph to assess organizational impact.
       Also fetches active CVEs from NVD/CISA and maps them to compliance obligations.
 """
-import asyncio
 import structlog
 import vertexai
 from langchain_google_vertexai import ChatVertexAI
@@ -16,7 +15,6 @@ from agents.state import ComplianceWorkflowState, ImpactGap, SecurityAdvisory
 from knowledge.graph.neo4j_client import Neo4jClient
 from knowledge.vectors.qdrant_store import RegulatoryVectorStore
 from knowledge.security.cve_control_mapper import map_cves_to_compliance, format_for_agent
-from ingestion.connectors.nvd import fetch_nvd_cves, fetch_cisa_kev
 from config import settings
 
 logger = structlog.get_logger()
@@ -211,15 +209,10 @@ class ImpactAnalystAgent:
         try:
             sector = state.sector or "financial services"
 
-            # Run async fetch in sync context
-            loop = asyncio.new_event_loop()
-            try:
-                nvd_cves, kev_cves = loop.run_until_complete(asyncio.gather(
-                    fetch_nvd_cves(sector, cvss_min=7.0, limit=6),
-                    fetch_cisa_kev(limit=3),
-                ))
-            finally:
-                loop.close()
+            # Use sync fetch to avoid event loop conflicts in background threads
+            from ingestion.connectors.nvd import fetch_nvd_cves_sync, fetch_cisa_kev_sync
+            nvd_cves = fetch_nvd_cves_sync(sector, cvss_min=7.0, limit=6)
+            kev_cves = fetch_cisa_kev_sync(limit=3)
 
             all_cves = kev_cves + nvd_cves  # KEVs first (actively exploited)
             mapped = map_cves_to_compliance(all_cves)
@@ -255,16 +248,28 @@ class ImpactAnalystAgent:
             return [], "Security advisory fetch unavailable — proceeding with regulatory analysis only."
 
     def _get_org_profile(self, state: ComplianceWorkflowState) -> str:
-        # In production this comes from org_context PostgreSQL
-        # For now return a structured placeholder
-        return """
-        Organization: Mid-market financial services firm
-        Jurisdictions: US Federal, EU, India
-        Business Units: Retail Banking, Corporate Finance, Technology, Compliance, Legal
-        Frameworks: SOC2, ISO27001, GDPR, PCI-DSS
-        Active Controls: 147 controls across all frameworks
-        Recent Audit Findings: 3 medium-risk gaps in data retention
-        """
+        try:
+            from org_context.models.database import get_org_profile
+            profile = get_org_profile()
+            if profile:
+                return (
+                    f"Organization: {profile.company_name}\n"
+                    f"Sectors: {', '.join(profile.sectors or [])}\n"
+                    f"Countries: {', '.join(profile.countries or [])}\n"
+                    f"Regulators: {', '.join(profile.regulators or [])}\n"
+                    f"Size: {profile.company_size or 'Unknown'}\n"
+                    f"Revenue: ${profile.annual_revenue_usd:,.0f}" if profile.annual_revenue_usd else ""
+                )
+        except Exception as e:
+            logger.warning("org_profile_fetch_failed", error=str(e))
+
+        return (
+            "Organization: Mid-market financial services firm\n"
+            "Jurisdictions: US Federal, EU, India\n"
+            "Business Units: Retail Banking, Corporate Finance, Technology, Compliance, Legal\n"
+            "Frameworks: SOC2, ISO27001, GDPR, PCI-DSS\n"
+            "Active Controls: 147 controls across all frameworks"
+        )
 
 
 def impact_analyst_node(state: ComplianceWorkflowState) -> ComplianceWorkflowState:
