@@ -55,6 +55,7 @@ export default function OnboardUpload({ onAnalyze }: { onAnalyze?: () => void })
   // Upload State
   const [state, setState] = useState<UploadState>("idle");
   const [fileName, setFileName] = useState<string | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<{ name: string; count: number; method: string }[]>([]);
   const [controls, setControls] = useState<UploadedControl[]>([]);
   const [method, setMethod] = useState<string>("");
   const [errorMsg, setErrorMsg] = useState<string>("");
@@ -99,58 +100,67 @@ export default function OnboardUpload({ onAnalyze }: { onAnalyze?: () => void })
     setProfileSaved(false);
   }, []);
 
-  const handleUpload = useCallback(async (file: File) => {
-    setFileName(file.name);
+  const handleUpload = useCallback(async (files: File[]) => {
+    if (!files.length) return;
+    setFileName(files.map(f => f.name).join(", "));
     setState("uploading");
     setErrorMsg("");
 
-    const result = await uploadControlFile(file);
+    let allControls: UploadedControl[] = [...controls];
+    let lastMethod = method;
+    let hasError = false;
+    const newFiles: { name: string; count: number; method: string }[] = [];
 
-    if (!result) {
-      setState("done");
-      setMethod("demo_mode");
-      setControls([
+    for (const file of files) {
+      const result = await uploadControlFile(file);
+
+      if (!result || result.error) {
+        if (result?.error) console.warn(`Upload error for ${file.name}:`, result.error);
+        // Skip failed file but continue with others
+        newFiles.push({ name: file.name, count: 0, method: "error" });
+        hasError = true;
+        continue;
+      }
+
+      allControls = [...allControls, ...result.registered];
+      lastMethod = result.method;
+      newFiles.push({ name: file.name, count: result.registered.length, method: result.method });
+    }
+
+    // If all files failed, use demo fallback
+    if (allControls.length === 0 && controls.length === 0) {
+      allControls = [
         { control_id: "CTRL-DEMO-001", name: "Data Encryption at Rest", framework: "ISO27001", status: "registered" },
         { control_id: "CTRL-DEMO-002", name: "Access Control Policy", framework: "SOC2", status: "registered" },
         { control_id: "CTRL-DEMO-003", name: "Incident Response Plan", framework: "DORA", status: "registered" },
-      ]);
-      return;
+      ];
+      lastMethod = "demo_mode";
     }
 
-    if (result.error) {
-      console.warn("Upload error (falling back to demo):", result.error);
-      setErrorMsg(result.error);
-      setState("done");
-      setMethod("demo_mode");
-      setControls([
-        { control_id: "CTRL-DEMO-001", name: "Data Encryption at Rest", framework: "ISO27001", status: "registered" },
-        { control_id: "CTRL-DEMO-002", name: "Access Control Policy", framework: "SOC2", status: "registered" },
-        { control_id: "CTRL-DEMO-003", name: "Incident Response Plan", framework: "DORA", status: "registered" },
-      ]);
-      return;
-    }
-
-    setControls(result.registered);
-    setMethod(result.method);
+    setControls(allControls);
+    setMethod(lastMethod);
+    setUploadedFiles(prev => [...prev, ...newFiles]);
+    if (hasError && allControls.length === 0) setErrorMsg("Some files failed to upload");
     setState("done");
-  }, []);
+  }, [controls, method]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setState("idle");
-    const file = e.dataTransfer.files[0];
-    if (file) handleUpload(file);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length) handleUpload(files);
   }, [handleUpload]);
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleUpload(file);
+    const files = Array.from(e.target.files || []);
+    if (files.length) handleUpload(files);
   };
 
   const reset = () => {
     setState("idle");
     setFileName(null);
     setControls([]);
+    setUploadedFiles([]);
     setMethod("");
     setErrorMsg("");
     if (fileRef.current) fileRef.current.value = "";
@@ -325,19 +335,19 @@ export default function OnboardUpload({ onAnalyze }: { onAnalyze?: () => void })
 
             <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
               <button onClick={() => setCurrentStep(1)} style={{ padding: "10px", borderRadius: 8, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#EDEDEF", fontSize: 13, fontWeight: 600, cursor: "pointer", flex: 1 }}>Back</button>
-              <button 
-                onClick={() => { reset(); setCurrentStep(3); }} 
-                disabled={state !== "done"}
-                style={{ 
-                  padding: "10px", borderRadius: 8, 
-                  background: state === "done" ? "#E5484D" : "rgba(255,255,255,0.05)", 
-                  color: state === "done" ? "#fff" : "#4A4C57", 
-                  border: "none", fontSize: 13, fontWeight: 600, 
-                  cursor: state === "done" ? "pointer" : "not-allowed", flex: 2,
+              <button
+                onClick={() => { setState("idle"); setFileName(null); setErrorMsg(""); if (fileRef.current) fileRef.current.value = ""; setCurrentStep(3); }}
+                disabled={state === "uploading"}
+                style={{
+                  padding: "10px", borderRadius: 8,
+                  background: state !== "uploading" ? "#E5484D" : "rgba(255,255,255,0.05)",
+                  color: state !== "uploading" ? "#fff" : "#4A4C57",
+                  border: "none", fontSize: 13, fontWeight: 600,
+                  cursor: state !== "uploading" ? "pointer" : "not-allowed", flex: 2,
                   transition: "all .15s"
                 }}
               >
-                {state === "done" ? "Next: Existing Controls" : "Upload a document to proceed"}
+                {state === "done" ? `Next: Existing Controls (${uploadedFiles.length} file${uploadedFiles.length !== 1 ? "s" : ""} uploaded)` : state === "uploading" ? "Uploading..." : "Skip / Next: Existing Controls"}
               </button>
             </div>
           </div>
@@ -386,12 +396,12 @@ function UploadZone({ state, setState, handleDrop, fileRef, handleFile, fileName
           }}
         >
           <div style={{ fontSize: 11, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4A4C57", marginBottom: 10, letterSpacing: "0.08em" }}>UPLOAD</div>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#EDEDEF", marginBottom: 6 }}>Drop your {type} file here</div>
+          <div style={{ fontSize: 13, fontWeight: 600, color: "#EDEDEF", marginBottom: 6 }}>Drop your {type} files here</div>
           <div style={{ fontSize: 12, color: "#4A4C57", marginBottom: 12 }}>
-            or <span style={{ color: "#E5484D" }}>browse to upload</span>
+            or <span style={{ color: "#E5484D" }}>browse to upload</span> · multiple files supported
           </div>
-          <div style={{ fontSize: 11, color: "#2A2C37" }}>{type === "policies" ? "PDF · DOCX" : "CSV · XLSX · PDF · DOCX"}</div>
-          <input ref={fileRef} type="file" accept=".csv,.xlsx,.pdf,.docx" onChange={handleFile} style={{ display: "none" }} />
+          <div style={{ fontSize: 11, color: "#2A2C37" }}>{type === "policies" ? "PDF · DOCX · JSON" : "CSV · XLSX · PDF · DOCX · JSON"}</div>
+          <input ref={fileRef} type="file" accept=".csv,.xlsx,.pdf,.docx,.json" multiple onChange={handleFile} style={{ display: "none" }} />
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 8 }}>
           {FORMATS.map((f) => (
@@ -406,21 +416,32 @@ function UploadZone({ state, setState, handleDrop, fileRef, handleFile, fileName
   }
 
   if (state === "uploading" || state === "done") {
+    const fileNames = fileName?.split(", ") || [];
+    const fileCount = fileNames.length;
     return (
       <div style={{ textAlign: "center", padding: "20px 0", background: "rgba(255,255,255,0.02)", borderRadius: 8, border: "1px solid rgba(255,255,255,0.05)" }}>
         <div style={{ fontSize: 11, fontWeight: 700, fontFamily: "JetBrains Mono, monospace", color: "#4A4C57", marginBottom: 12, letterSpacing: "0.08em" }}>
-          {state === "done" ? "SUCCESS" : "PROCESS"}
+          {state === "done" ? "SUCCESS" : "PROCESSING"}
         </div>
         <div style={{ fontSize: 13, fontWeight: 500, color: "#EDEDEF", marginBottom: 4 }}>
-          {state === "done" ? "Document indexed successfully" : (type === "policies" ? "Analyzing policy context..." : "Parsing and registering controls...")}
+          {state === "done"
+            ? `${fileCount} file${fileCount > 1 ? "s" : ""} indexed successfully`
+            : `Processing ${fileCount} file${fileCount > 1 ? "s" : ""}...`}
         </div>
-        <div style={{ fontSize: 11, color: "#4A4C57", marginBottom: 16, fontFamily: "JetBrains Mono, monospace" }}>{fileName}</div>
+        <div style={{ fontSize: 11, color: "#4A4C57", marginBottom: 8, fontFamily: "JetBrains Mono, monospace", maxHeight: 60, overflowY: "auto", padding: "0 16px" }}>
+          {fileNames.map((f, i) => <div key={i}>{f}</div>)}
+        </div>
         {state === "uploading" ? (
           <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", margin: "0 20px" }}>
             <div style={{ height: "100%", width: "100%", background: "linear-gradient(90deg,#E5484D,#B83E42)", borderRadius: 2, animation: "shimmer 1.5s infinite" }} />
           </div>
         ) : (
-          <div style={{ fontSize: 12, color: "#22C55E" }}>Ready for analysis</div>
+          <div>
+            <div style={{ fontSize: 12, color: "#22C55E", marginBottom: 8 }}>Ready for analysis</div>
+            <button onClick={() => { setState("idle"); if (fileRef.current) fileRef.current.value = ""; }} style={{ fontSize: 11, color: "#8B8D97", background: "none", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 6, padding: "4px 12px", cursor: "pointer" }}>
+              + Add more files
+            </button>
+          </div>
         )}
         <style>{`@keyframes shimmer { 0%,100%{opacity:1} 50%{opacity:0.5} }`}</style>
       </div>
