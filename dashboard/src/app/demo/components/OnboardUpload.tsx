@@ -429,7 +429,7 @@ function UploadZone({ state, setState, handleDrop, fileRef, handleFile, fileName
             : `Processing ${fileCount} file${fileCount > 1 ? "s" : ""}...`}
         </div>
         <div style={{ fontSize: 11, color: "#4A4C57", marginBottom: 8, fontFamily: "JetBrains Mono, monospace", maxHeight: 60, overflowY: "auto", padding: "0 16px" }}>
-          {fileNames.map((f, i) => <div key={i}>{f}</div>)}
+          {fileNames.map((f: string, i: number) => <div key={i}>{f}</div>)}
         </div>
         {state === "uploading" ? (
           <div style={{ height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden", margin: "0 20px" }}>
