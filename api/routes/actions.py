@@ -103,7 +103,22 @@ async def export_to_jira(request: JiraExportRequest):
                 continue
 
             jira_priority = PRIORITY_MAP.get((item.priority or "").upper(), "Medium")
-            description_text = item.description or item.title or ""
+
+            description_text = (
+                f"Description:\n{item.description or item.title or ''}\n\n"
+                f"--- Suggested Fix ---\n"
+                f"What to fix: {item.title}\n"
+                f"How to fix: {item.description or 'See compliance obligations below'}\n"
+                f"Owner: {item.owner or 'Unassigned'}\n"
+                f"Effort estimate: {item.effort_days or 'N/A'} days\n"
+                f"Deadline: {item.deadline or 'N/A'}\n"
+                f"Compliance risk score: {item.compliance_risk_score or 'N/A'}/10\n"
+                f"Source obligations: {', '.join(item.source_obligation_ids) if item.source_obligation_ids else 'N/A'}\n\n"
+                f"--- Metadata ---\n"
+                f"Priority: {item.priority}\n"
+                f"Status: {item.status}\n\n"
+                f"Created by Red Forge Compliance Platform"
+            )
 
             payload = {
                 "fields": {

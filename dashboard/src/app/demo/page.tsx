@@ -113,8 +113,11 @@ export default function DemoPage() {
         setAnalysisComplete(true);
         if (event.result) setPipelineResult(event.result);
       } else if (event.type === "error" || event.type === "timeout") {
-        setIsRunning(false);
-        setAnalysisComplete(true);
+        // SSE failed — fall back to simulated agent animation
+        sseCleanup.current?.();
+        sseCleanup.current = null;
+        setIsRealMode(false);
+        runSimulated();
       }
     });
 

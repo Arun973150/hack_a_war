@@ -294,6 +294,31 @@ async def _async_auto_notify(state, request) -> tuple[bool, list]:
                     if hasattr(priority, "value"):
                         priority = priority.value
 
+                    # Build rich description with suggestion
+                    effort = (item.get("effort_days", "") if is_dict else getattr(item, "effort_days", ""))
+                    owner = (item.get("owner", "") if is_dict else getattr(item, "owner", ""))
+                    deadline = (item.get("deadline", "") if is_dict else getattr(item, "deadline", ""))
+                    risk_score = (item.get("compliance_risk_score", "") if is_dict else getattr(item, "compliance_risk_score", ""))
+                    source_ids = (item.get("source_obligation_ids", []) if is_dict else getattr(item, "source_obligation_ids", []))
+
+                    description_text = (
+                        f"Description:\n{desc}\n\n"
+                        f"--- Suggested Fix ---\n"
+                        f"What to fix: {title}\n"
+                        f"How to fix: {desc}\n"
+                        f"Owner: {owner}\n"
+                        f"Effort estimate: {effort} days\n"
+                        f"Deadline: {deadline}\n"
+                        f"Compliance risk score: {risk_score}/10\n"
+                        f"Source obligations: {', '.join(source_ids) if source_ids else 'N/A'}\n\n"
+                        f"--- Metadata ---\n"
+                        f"Priority: {priority}\n"
+                        f"Document: {request.document_id}\n"
+                        f"Jurisdiction: {request.jurisdiction}\n"
+                        f"Regulatory body: {request.regulatory_body}\n\n"
+                        f"Auto-created by Red Forge"
+                    )
+
                     payload = {
                         "fields": {
                             "project": {"key": project_key},
@@ -301,7 +326,7 @@ async def _async_auto_notify(state, request) -> tuple[bool, list]:
                             "description": {
                                 "type": "doc", "version": 1,
                                 "content": [{"type": "paragraph", "content": [
-                                    {"type": "text", "text": f"{desc}\n\nAuto-created by Red Forge · Document: {request.document_id}"}
+                                    {"type": "text", "text": description_text}
                                 ]}],
                             },
                             "issuetype": {"name": "Task"},

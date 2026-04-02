@@ -138,7 +138,8 @@ _auth = [Depends(require_api_key)]
 app.include_router(regulations.router, prefix="/api/v1/regulations", tags=["regulations"], dependencies=_auth)
 app.include_router(actions.router, prefix="/api/v1/actions", tags=["actions"], dependencies=_auth)
 app.include_router(controls.router, prefix="/api/v1/controls", tags=["controls"], dependencies=_auth)
-app.include_router(stream.router, prefix="/api/v1/stream", tags=["stream"], dependencies=_auth)
+# SSE stream is unauthenticated — EventSource API cannot send custom headers
+app.include_router(stream.router, prefix="/api/v1/stream", tags=["stream"])
 app.include_router(upload.router, prefix="/api/v1/org", tags=["org"], dependencies=_auth)
 app.include_router(alerts.router, prefix="/api/v1/alerts", tags=["alerts"], dependencies=_auth)
 app.include_router(cve.router, prefix="/api/v1/cve", tags=["cve"], dependencies=_auth)
